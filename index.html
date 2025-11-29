@@ -1,1 +1,602 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Xidigaha Student</title>
+    
+    <!-- CDNs -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --bg-glass: rgba(30, 41, 59, 0.95);
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --accent: #ec4899;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --header-h: 65px;
+            --nav-h: 70px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Outfit', sans-serif; background: var(--bg-body); color: var(--text-main); padding-top: var(--header-h); padding-bottom: calc(var(--nav-h) + 20px); overflow-x: hidden; }
+
+        /* --- UTILITIES --- */
+        .hidden { display: none !important; }
+        .flex-center { display: flex; justify-content: center; align-items: center; }
+        .text-center { text-align: center; }
+
+        /* --- BUTTONS with LOADERS --- */
+        .btn { border: none; padding: 14px; border-radius: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; width: 100%; font-size: 1rem; color: white; display: flex; align-items: center; justify-content: center; gap: 10px; position: relative; }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4); }
+        .btn-success { background: var(--success); }
+        .btn-danger { background: var(--danger); }
+        .btn-outline { background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted); }
+        .btn:active { transform: scale(0.97); }
+        .btn:disabled { opacity: 0.7; cursor: not-allowed; }
+        
+        .btn .spinner { width: 18px; height: 18px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
+        .btn.loading .btn-text { display: none; }
+        .btn.loading .spinner { display: block; }
+
+        input { width: 100%; padding: 16px; background: var(--bg-card); border: 1px solid #334155; border-radius: 12px; color: white; margin-bottom: 15px; outline: none; font-size: 1rem; transition: 0.3s; }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
+
+        /* --- LAYOUT --- */
+        .app-header { position: fixed; top: 0; left: 0; width: 100%; height: var(--header-h); background: var(--bg-glass); backdrop-filter: blur(12px); border-bottom: 1px solid #334155; z-index: 50; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; transition: top 0.3s; }
+        .brand { font-size: 1.5rem; font-weight: 700; background: linear-gradient(to right, #fff, var(--text-muted)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .avatar-small { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-card); border: 2px solid var(--primary); object-fit: cover; cursor: pointer; }
+
+        .navbar { position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-h); background: var(--bg-glass); backdrop-filter: blur(12px); border-top: 1px solid #334155; display: flex; justify-content: space-around; align-items: center; z-index: 50; padding-bottom: 10px; }
+        .nav-item { color: var(--text-muted); font-size: 0.75rem; display: flex; flex-direction: column; align-items: center; text-decoration: none; position: relative; transition: 0.3s; }
+        .nav-item.active { color: var(--primary); transform: translateY(-3px); }
+        .nav-item i { font-size: 1.4rem; margin-bottom: 5px; }
+
+        .page { padding: 20px; max-width: 600px; margin: 0 auto; animation: fadeIn 0.4s ease; }
+        .card { background: var(--bg-card); padding: 20px; border-radius: 20px; margin-bottom: 15px; border: 1px solid #334155; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: rgba(255,255,255,0.03); border-radius: 12px; margin-bottom: 10px; cursor: pointer; border: 1px solid transparent; transition: 0.2s; }
+        .list-item:active { background: rgba(255,255,255,0.08); border-color: var(--primary); }
+
+        /* --- SKELETONS --- */
+        .skeleton { background: #334155; background: linear-gradient(110deg, #334155 8%, #475569 18%, #334155 33%); border-radius: 8px; background-size: 200% 100%; animation: shine 1.5s linear infinite; }
+        .sk-text { height: 16px; width: 60%; margin-bottom: 8px; }
+        .sk-card { height: 80px; width: 100%; margin-bottom: 15px; }
+        @keyframes shine { to { background-position-x: -200%; } }
+
+        /* --- MODALS --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 30px; text-align: center; backdrop-filter: blur(8px); animation: fadeIn 0.3s; }
+        .modal-blocking { background: var(--bg-body); z-index: 2000; }
+        .modal-glass { background: rgba(15, 23, 42, 0.9); }
+
+        /* --- GLOBAL LOADER --- */
+        #global-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-body); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; transition: opacity 0.5s; }
+        .g-spinner { width: 50px; height: 50px; border: 5px solid rgba(99, 102, 241, 0.2); border-left-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+
+        /* --- NEWS --- */
+        .news-box { border-left: 3px solid var(--primary); background: rgba(99,102,241,0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .news-title { font-weight: bold; margin-bottom: 5px; color: white; }
+        .news-body { font-size: 0.9rem; color: var(--text-muted); }
+
+        /* --- CONFETTI Z-INDEX FIX --- */
+        canvas { z-index: 9999 !important; pointer-events: none; position: fixed; top: 0; left: 0; }
+        
+        /* Plyr Volume Hide */
+        .plyr__volume { display: none !important; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <!-- Global Loader -->
+    <div id="global-loader">
+        <div class="g-spinner"></div>
+        <p style="margin-top:20px; color:var(--text-muted)">Loading Xidigaha...</p>
+    </div>
+
+    <!-- Header -->
+    <header class="app-header hidden" id="main-header">
+        <div class="brand">Xidigaha</div>
+        <img src="" class="avatar-small" id="header-avatar" onclick="window.location.hash='#/profile'">
+    </header>
+
+    <!-- Announcement Banner -->
+    <div id="announcement-banner" class="hidden" style="background: linear-gradient(90deg, var(--primary), var(--accent)); padding: 10px; text-align: center; font-size: 0.9rem; font-weight: bold; position: relative; z-index: 49; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+        <span id="ann-text"></span>
+        <i class="fas fa-times" style="position: absolute; right: 15px; cursor: pointer;" onclick="this.parentElement.classList.add('hidden')"></i>
+    </div>
+
+    <!-- App Container -->
+    <div id="app"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar hidden" id="main-nav">
+        <a href="#/home" class="nav-item" id="nav-home"><i class="fas fa-house-chimney"></i>Home</a>
+        <a href="#/subjects" class="nav-item" id="nav-subjects"><i class="fas fa-book-open"></i>Learn</a>
+        <a href="#/leaderboard" class="nav-item" id="nav-leaderboard"><i class="fas fa-trophy"></i>Rank</a>
+        <a href="#/profile" class="nav-item" id="nav-profile"><i class="fas fa-user"></i>Profile</a>
+    </nav>
+
+    <!-- BLOCKING PAYMENT STATUS MODAL -->
+    <div id="payment-status-modal" class="modal-overlay modal-blocking hidden">
+        <div class="g-spinner" style="margin-bottom:20px;"></div>
+        <h2>Payment Processing</h2>
+        <p style="color:var(--text-muted); margin: 15px 0 30px; line-height: 1.6;">
+            We are confirming your <strong>$1</strong> payment.<br>
+            <span style="font-size:0.9rem">Waaxey qaadan kartaa 1-2 saacadood.</span>
+        </p>
+        <div class="card" style="width:100%; text-align:left; background:rgba(255,255,255,0.05);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>Status</span><span style="color:var(--warning)">Waiting...</span></div>
+            <div style="display:flex; justify-content:space-between;"><span>Amount</span><span style="color:var(--success)">$1</span></div>
+        </div>
+        <p class="text-center" style="font-size:0.8rem; color:var(--text-muted); margin-top:20px;">Do not close this page if possible.</p>
+    </div>
+
+    <!-- PREMIUM LOCK MODAL -->
+    <div id="premium-lock" class="modal-overlay modal-glass hidden">
+        <i class="fas fa-lock fa-4x" style="color:var(--accent); margin-bottom:20px;"></i>
+        <h2>Fadlan bixi khidmada SI aad u isticmaasho xidigaha app</h2>
+        <p style="color:var(--text-muted); margin-bottom:30px;">khidmada waa $1 kaliya.</p>
+        <button class="btn btn-primary" onclick="window.location.hash='#/payment'; document.getElementById('premium-lock').classList.add('hidden')">Unlock Now</button>
+        <button class="btn btn-outline" style="margin-top:15px; border:none;" onclick="document.getElementById('premium-lock').classList.add('hidden')">Maybe Later</button>
+    </div>
+
+    <!-- TEMPLATES -->
+
+    <!-- Auth -->
+    <template id="tpl-auth">
+        <div class="page" style="min-height:90vh; display:flex; flex-direction:column; justify-content:center;">
+            <h1 class="text-center" style="margin-bottom:30px; font-size:3rem; background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Xidigaha</h1>
+            
+            <div style="display:flex; background:var(--bg-card); padding:5px; border-radius:12px; margin-bottom:25px; border:1px solid #334155;">
+                <button class="btn" style="flex:1; background:var(--primary); padding:10px; border-radius:8px;" id="tab-login" onclick="toggleAuth('login')">Login</button>
+                <button class="btn" style="flex:1; background:transparent; padding:10px; color:var(--text-muted);" id="tab-reg" onclick="toggleAuth('reg')">Register</button>
+            </div>
+
+            <div id="form-login">
+                <input type="email" id="l-email" placeholder="Email Address">
+                <input type="password" id="l-pass" placeholder="Password">
+                <button class="btn btn-primary" id="btn-login"><span class="btn-text">Login</span><div class="spinner"></div></button>
+            </div>
+
+            <div id="form-reg" class="hidden">
+                <input id="r-name" placeholder="Full Name">
+                <input id="r-phone" placeholder="Phone Number">
+                <input id="r-email" placeholder="Email Address">
+                <input id="r-pass" type="password" placeholder="Password (6+ chars)">
+                <button class="btn btn-primary" id="btn-reg"><span class="btn-text">Create Account</span><div class="spinner"></div></button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Home -->
+    <template id="tpl-home">
+        <div class="page">
+            <h2>Welcome, <span id="h-name">Student</span> 👋</h2>
+            
+            <div class="card" style="background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border:none; margin-top:20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <p style="color:rgba(255,255,255,0.8); font-size:0.9rem;">Your Score</p>
+                        <h1 style="font-size:3rem; font-weight:800;" id="h-score">0</h1>
+                    </div>
+                    <i class="fas fa-medal fa-3x" style="opacity:0.3"></i>
+                </div>
+            </div>
+
+            <h3 style="margin:25px 0 15px;">Latest News</h3>
+            <div id="news-container">
+                <div class="skeleton sk-card"></div>
+                <div class="skeleton sk-card"></div>
+            </div>
+
+            <h3 style="margin:25px 0 15px;">FAQ</h3>
+            <div class="card" style="padding:15px; margin-bottom:10px;">
+                <strong>How do I get Premium?</strong>
+                <p class="text-muted" style="font-size:0.9rem; margin-top:5px;">Go to the payment page, pay $1 via EVC Plus, and upload the screenshot.</p>
+            </div>
+            <div class="card" style="padding:15px; margin-bottom:10px;">
+                <strong>How to earn points?</strong>
+                <p class="text-muted" style="font-size:0.9rem; margin-top:5px;">Watch lessons fully and complete the quizzes. Correct answers award 2 points.</p>
+            </div>
+        </div>
+    </template>
+
+    <!-- Payment -->
+    <template id="tpl-payment">
+        <div class="page">
+            <h2 class="text-center" style="margin-bottom:20px;">Bixi khidmada</h2>
+
+            <div id="pay-step-1">
+                <div class="card text-center">
+                    <i class="fas fa-mobile-alt fa-3x" style="color:var(--primary); margin-bottom:15px;"></i>
+                    <h3>Step 1: Bixi $1</h3>
+                    <p class="text-muted" style="margin-bottom:20px;">.</p>
+                    <button class="btn btn-success" id="btn-call"><i class="fas fa-phone"></i> ku bixi via EVC Plus</button>
+                    <p style="font-size:0.8rem; margin-top:10px; color:var(--text-muted);">Verification screen appears automatically.</p>
+                </div>
+            </div>
+
+            <div id="pay-step-2" class="hidden">
+                <div class="card">
+                    <h3>Step 2: Xaqiiji</h3>
+                    <p class="text-muted" style="margin-bottom:15px;">Geli numberka iyo magaca lacagta kasoo dirtey iyo screenshot.</p>
+                    <!-- UPDATED: Added Name Input -->
+                    <input id="pay-sender-name" placeholder="Geli magacaga oo dhameystiran">
+                    <input id="pay-phone" placeholder="Geli number ka lacagta kasoo dirtay">
+                    <input type="file" id="pay-file" accept="image/*">
+                    <button class="btn btn-primary" id="btn-review"><span class="btn-text">Review</span><div class="spinner"></div></button>
+                </div>
+            </div>
+
+            <div id="pay-step-3" class="hidden">
+                <div class="card">
+                    <h3 class="text-center">Iska hubi</h3>
+                    <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:8px; margin:20px 0;">
+                        <div>Name: <strong id="c-name"></strong></div>
+                        <div style="margin-top:5px;">Phone: <strong id="c-phone"></strong></div>
+                        <div style="margin-top:5px;">Amount: <strong style="color:var(--success)">$1</strong></div>
+                    </div>
+                    <button class="btn btn-success" id="btn-submit-final"><span class="btn-text">Confirm & Submit</span><div class="spinner"></div></button>
+                    <button class="btn btn-danger" style="margin-top:10px;" onclick="payStep(2)">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Content Lists -->
+    <template id="tpl-subjects"><div class="page"><h2>Subjects</h2><div id="sub-list"><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></div></div></template>
+    
+    <template id="tpl-list">
+        <div class="page">
+            <button class="btn btn-outline" style="width:auto; margin-bottom:15px; padding:8px 15px;" onclick="history.back()"><i class="fas fa-arrow-left"></i> Back</button>
+            <h2 id="l-head">...</h2>
+            <div id="l-body"><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></div>
+        </div>
+    </template>
+
+    <!-- Player -->
+    <template id="tpl-player">
+        <div class="page" style="padding:0;">
+            <div style="background:black; position:sticky; top:var(--header-h); z-index:40;">
+                <video id="player" playsinline controls></video>
+            </div>
+            <div style="padding:20px;">
+                <h2 id="v-title"></h2>
+                <p id="v-desc" style="color:var(--text-muted); line-height:1.6; margin-bottom:20px;"></p>
+                <button class="btn btn-primary" id="btn-quiz" disabled style="opacity:0.5;">
+                    <i class="fas fa-lock"></i> Watch video to unlock Quiz
+                </button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Quiz -->
+    <template id="tpl-quiz">
+        <div class="page">
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                <span>Question <span id="q-idx">1</span></span>
+                <span style="color:var(--success)">Score: <span id="q-score">0</span></span>
+            </div>
+            <div class="card">
+                <h3 id="q-txt" style="margin-bottom:20px; line-height:1.5;"></h3>
+                <div id="q-opts"></div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Leaderboard -->
+    <template id="tpl-lb">
+        <div class="page">
+            <h2>Leaderboard 🏆</h2>
+            <div class="card" id="lb-list" style="padding:0; overflow:hidden;">
+                <div style="padding:20px;"><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Profile -->
+    <template id="tpl-profile">
+        <div class="page">
+            <div class="text-center">
+                <img id="p-img" class="avatar-small" style="width:100px; height:100px; margin-bottom:10px;">
+                <h2 id="p-name"></h2>
+                <!-- UPDATED: Premium/Free Badge container -->
+                <div id="p-badge" style="display:inline-block; padding:5px 15px; border-radius:20px; font-size:0.8rem; margin-top:5px; font-weight:bold; letter-spacing:0.5px;"></div>
+            </div>
+            <div class="card" style="margin-top:20px;">
+                <label>Edit Name</label><input id="ed-name">
+                <label>Edit Phone</label><input id="ed-phone">
+                <button class="btn btn-primary" id="btn-save-p"><span class="btn-text">Save Changes</span><div class="spinner"></div></button>
+            </div>
+            <button class="btn btn-danger" style="margin-top:15px;" onclick="doLogout()">Logout</button>
+        </div>
+    </template>
+
+    <!-- LOGIC -->
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-auth.js";
+        import { getDatabase, ref, set, get, onValue, push, update, query, orderByChild, limitToLast, runTransaction } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-database.js";
+
+        // FIREBASE SETUP (Replace Keys)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDKFpwQU9W4Njvtmtz6N_Jc2kZjdY_CIEc",
+  authDomain: "connectsphare-a27d6.firebaseapp.com",
+  databaseURL: "https://connectsphare-a27d6-default-rtdb.firebaseio.com",
+  projectId: "connectsphare-a27d6",
+  storageBucket: "connectsphare-a27d6.firebasestorage.app",
+  messagingSenderId: "277886142393",
+  appId: "1:277886142393:web:44fedcbec4e9cc5363d868"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        // STATE
+        let currentUser = null;
+        let profile = null;
+
+        // UTILS
+        const el = id => document.getElementById(id);
+        const btnLoad = (id, s) => { const b=el(id); if(b){ if(s){b.classList.add('loading');b.disabled=true}else{b.classList.remove('loading');b.disabled=false}} };
+        const render = id => { el('app').innerHTML=''; el('app').appendChild(el('tpl-'+id).content.cloneNode(true)); window.scrollTo(0,0); };
+        const toBase64 = file => new Promise((r,j)=>{const x=new FileReader();x.readAsDataURL(file);x.onload=()=>r(x.result);x.onerror=e=>j(e);});
+        
+        // AUTH TOGGLE
+        window.toggleAuth = (m) => {
+            el('form-login').classList.toggle('hidden', m!=='login'); el('form-reg').classList.toggle('hidden', m!=='reg');
+            el('tab-login').style.background=m==='login'?'var(--primary)':'transparent'; el('tab-login').style.color=m==='login'?'white':'var(--text-muted)';
+            el('tab-reg').style.background=m==='reg'?'var(--primary)':'transparent'; el('tab-reg').style.color=m==='reg'?'white':'var(--text-muted)';
+        };
+
+        window.payStep = (n) => { [1,2,3].forEach(i=>el('pay-step-'+i).classList.add('hidden')); el('pay-step-'+n).classList.remove('hidden'); };
+        window.doLogout = () => signOut(auth);
+
+        // --- AUTH LISTENER ---
+        onAuthStateChanged(auth, u => {
+            if(u) {
+                currentUser = u;
+                onValue(ref(db, `users/${u.uid}`), snap => {
+                    profile = snap.val();
+                    if(!profile) return;
+
+                    // Remove Global Loader
+                    el('global-loader').style.opacity = '0';
+                    setTimeout(()=>el('global-loader').classList.add('hidden'),500);
+
+                    // Show Header/Nav
+                    el('main-header').classList.remove('hidden');
+                    el('main-nav').classList.remove('hidden');
+                    el('header-avatar').src = `https://ui-avatars.com/api/?name=${profile.name}&background=6366f1&color=fff`;
+
+                    // Premium Celebration (One-Time)
+                    if(profile.hasAccess && !profile.celebrated) {
+                        el('payment-status-modal').classList.add('hidden');
+                        Swal.fire({ title: '🎉 Activated!', text: 'Welcome to Premium.', icon: 'success', backdrop: `rgba(0,0,123,0.4)` })
+                        .then(() => update(ref(db, `users/${u.uid}`), { celebrated: true }));
+                        confetti({ particleCount: 200, spread: 100, zIndex: 9999 });
+                    }
+
+                    // Blocking Modal Check
+                    onValue(ref(db, `payments/${u.uid}`), pSnap => {
+                        const pay = pSnap.val();
+                        if(pay && pay.status === 'pending' && !profile.hasAccess) el('payment-status-modal').classList.remove('hidden');
+                        else el('payment-status-modal').classList.add('hidden');
+                    });
+
+                    // Announcements
+                    onValue(ref(db, 'announcements'), s => {
+                        if(s.exists()) {
+                            el('ann-text').innerText = Object.values(s.val()).pop().message;
+                            el('announcement-banner').classList.remove('hidden');
+                        }
+                    });
+
+                    if(window.location.hash === '' || window.location.hash === '#/login') window.location.hash = '#/home';
+                });
+            } else {
+                currentUser = null; profile = null;
+                el('main-header').classList.add('hidden'); el('main-nav').classList.add('hidden'); el('announcement-banner').classList.add('hidden');
+                el('global-loader').style.opacity='0'; setTimeout(()=>el('global-loader').classList.add('hidden'),500);
+                window.location.hash = '#/login';
+            }
+        });
+
+        // --- ROUTER ---
+        window.addEventListener('hashchange', router);
+        function router() {
+            const hash = window.location.hash || '#/login';
+            if(!currentUser && hash !== '#/login') return window.location.hash = '#/login';
+            if(currentUser && hash === '#/login') return window.location.hash = '#/home';
+
+            // Locks
+            const locked = ['#/subjects', '#/leaderboard'];
+            if(profile && !profile.hasAccess && (locked.includes(hash) || hash.includes('/subject') || hash.includes('/lesson'))) {
+                el('premium-lock').classList.remove('hidden');
+                if(locked.includes(hash)) { window.history.replaceState(null,null,'#/home'); renderHome(); return; }
+            }
+
+            // Route
+            if(hash === '#/login') renderAuth();
+            else if(hash === '#/home') renderHome();
+            else if(hash === '#/payment') renderPayment();
+            else if(hash === '#/subjects') renderSubjects();
+            else if(hash === '#/leaderboard') renderLB();
+            else if(hash === '#/profile') renderProfile();
+            else if(hash.startsWith('#/subject/')) renderList(hash.split('/')[2], 'chapters');
+            else if(hash.startsWith('#/chapter/')) renderList(hash.split('/')[2], 'lessons');
+            else if(hash.startsWith('#/lesson/')) renderPlayer(hash.split('/')[2]);
+            else if(hash.startsWith('#/quiz/')) renderQuiz(hash.split('/')[2]);
+
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if(hash.includes('home')) el('nav-home').classList.add('active');
+            if(hash.includes('subject')) el('nav-subjects').classList.add('active');
+            if(hash.includes('leaderboard')) el('nav-leaderboard').classList.add('active');
+            if(hash.includes('profile')) el('nav-profile').classList.add('active');
+        }
+
+        // --- RENDERERS ---
+        function renderAuth() {
+            render('auth');
+            el('btn-login').onclick = () => {
+                btnLoad('btn-login',1);
+                signInWithEmailAndPassword(auth, el('l-email').value, el('l-pass').value).catch(e=>{btnLoad('btn-login',0);Swal.fire('Error',e.message,'error')});
+            };
+            el('btn-reg').onclick = async () => {
+                const n=el('r-name').value, p=el('r-phone').value; if(!n||!p)return Swal.fire('Error','Missing info','error');
+                btnLoad('btn-reg',1);
+                try {
+                    const c = await createUserWithEmailAndPassword(auth, el('r-email').value, el('r-pass').value);
+                    await set(ref(db, `users/${c.user.uid}`), { name: n, phone: p, email: el('r-email').value, hasAccess: false, totalScore: 0 });
+                } catch(e) { btnLoad('btn-reg',0); Swal.fire('Error',e.message,'error'); }
+            };
+        }
+
+        function renderHome() {
+            render('home');
+            el('h-name').innerText = profile.name.split(' ')[0];
+            el('h-score').innerText = profile.totalScore || 0;
+            const nc = el('news-container');
+            get(ref(db, 'news')).then(s => {
+                nc.innerHTML = '';
+                if(s.exists()) Object.values(s.val()).reverse().slice(0,3).forEach(n => nc.innerHTML+=`<div class="news-box"><div class="news-title">${n.title}</div><div class="news-body">${n.body}</div></div>`);
+                else nc.innerHTML = '<small class="text-muted">No news yet.</small>';
+            });
+        }
+
+        function renderPayment() {
+            render('payment');
+            // UPDATED: Fill Sender Name input
+            el('pay-sender-name').value = profile.name;
+            el('pay-phone').value = profile.phone;
+            
+            el('btn-call').onclick = () => { window.location.href="tel:*712*619398179*1#"; setTimeout(()=>payStep(2),3000); };
+            
+            let b64;
+            el('btn-review').onclick = async () => {
+                const f=el('pay-file').files[0]; if(!f) return Swal.fire('Error','Upload Image','error');
+                btnLoad('btn-review',1);
+                b64 = await toBase64(f);
+                // UPDATED: Use the value from the new input
+                el('c-name').innerText = el('pay-sender-name').value; 
+                el('c-phone').innerText=el('pay-phone').value;
+                payStep(3);
+                btnLoad('btn-review',0);
+            };
+            el('btn-submit-final').onclick = async () => {
+                btnLoad('btn-submit-final',1);
+                // UPDATED: Submit with the entered name
+                await set(ref(db, `payments/${currentUser.uid}`), { 
+                    uid:currentUser.uid, 
+                    name:el('pay-sender-name').value, 
+                    number:el('pay-phone').value, 
+                    amount:"$1", 
+                    screenshotBase64:b64, 
+                    status:'pending', 
+                    timestamp:Date.now() 
+                });
+                window.location.hash='#/home';
+            };
+        }
+
+        function renderLB() {
+            render('lb');
+            const list = el('lb-list');
+            const q = query(ref(db, 'users'), orderByChild('totalScore'), limitToLast(50));
+            onValue(q, s => {
+                list.innerHTML = '';
+                let arr = [];
+                s.forEach(c => arr.push({uid:c.key, ...c.val()}));
+                
+                // Sort Descending + Random Tie Break
+                arr.sort((a,b) => {
+                    const diff = (b.totalScore||0) - (a.totalScore||0);
+                    if(diff === 0) return 0.5 - Math.random(); // Randomize ties
+                    return diff;
+                });
+
+                arr.forEach((u, i) => {
+                    const isMe = u.uid === currentUser.uid;
+                    if(i===0 && isMe && !sessionStorage.getItem('r1')) {
+                        confetti({particleCount:300}); Swal.fire('🏆 Rank #1!','You lead the pack!','success'); sessionStorage.setItem('r1','1');
+                    }
+                    list.innerHTML += `
+                        <div style="display:flex; justify-content:space-between; padding:15px; border-bottom:1px solid rgba(255,255,255,0.05); background:${isMe?'rgba(99,102,241,0.1)':''}">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <strong style="color:var(--accent); width:25px;">#${i+1}</strong>
+                                <span>${u.name}</span>
+                            </div>
+                            <span style="color:var(--success); font-weight:bold">${u.totalScore||0}</span>
+                        </div>`;
+                });
+            });
+        }
+
+        async function renderSubjects() { render('subjects'); const d=el('sub-list'); const s=await get(ref(db,'subjects')); d.innerHTML=''; if(s.exists())Object.entries(s.val()).forEach(([k,v])=>d.innerHTML+=`<div class="list-item" onclick="window.location.hash='#/subject/${k}'"><h3>${v.title}</h3><i class="fas fa-chevron-right"></i></div>`); else d.innerHTML='<p class="text-center text-muted">No subjects.</p>'; }
+
+        async function renderList(id, type) { render('list'); const d=el('l-body'); get(ref(db,(type==='chapters'?'subjects/':'chapters/')+id)).then(s=>el('l-head').innerText=s.val().title); const i=await get(ref(db,type)); d.innerHTML=''; if(i.exists())Object.entries(i.val()).forEach(([k,v])=>{if(v[type==='chapters'?'subjectId':'chapterId']===id)d.innerHTML+=`<div class="list-item" onclick="window.location.hash='#/${type==='chapters'?'chapter':'lesson'}/${k}'"><b>${v.title}</b><i class="fas fa-play-circle"></i></div>`}); else d.innerHTML='<p class="text-center text-muted">Empty.</p>'; }
+
+        async function renderPlayer(lid) {
+            render('player'); const s=await get(ref(db,`lessons/${lid}`)); const l=s.val();
+            el('v-title').innerText=l.title; el('v-desc').innerText=l.description;
+            const p = new Plyr('#player', { controls: ['play','progress','current-time','fullscreen'] });
+            p.source = { type:'video', sources:[{src:l.videoUrl, type:'video/mp4'}] };
+            p.on('ended', () => { el('btn-quiz').disabled=false; el('btn-quiz').style.opacity=1; el('btn-quiz').onclick=()=>window.location.hash=`#/quiz/${lid}`; });
+        }
+
+        async function renderQuiz(lid) {
+            render('quiz'); const s=await get(ref(db,`lessons/${lid}`)); const quiz=s.val().quiz||[]; let idx=0, sc=0;
+            const load = () => {
+                if(idx>=quiz.length) {
+                    runTransaction(ref(db, `users/${currentUser.uid}/totalScore`), c=>(c||0)+sc);
+                    return Swal.fire({title:'Complete', text:`Score: ${sc}`, icon:'success'}).then(()=>window.location.hash='#/subjects');
+                }
+                const q=quiz[idx]; el('q-idx').innerText=idx+1; el('q-txt').innerText=q.question; const d=el('q-opts'); d.innerHTML='';
+                q.options.forEach((o,i)=>{
+                    const b=document.createElement('button'); b.className='btn btn-outline'; b.style.marginBottom='10px'; b.innerText=o;
+                    b.onclick=()=>{ 
+                        Array.from(d.children).forEach(x=>x.disabled=true);
+                        if(i==q.answerIndex){sc+=2; el('q-score').innerText=sc; b.className='btn btn-success';} else b.className='btn btn-danger';
+                        setTimeout(()=>{idx++;load()},1000);
+                    }; d.appendChild(b);
+                });
+            };
+            if(quiz.length) load(); else { Swal.fire('No Quiz','','info'); history.back(); }
+        }
+
+        function renderProfile() {
+            render('profile'); el('p-img').src = `https://ui-avatars.com/api/?name=${profile.name}&background=6366f1&color=fff`;
+            el('p-name').innerText=profile.name;
+            
+            // UPDATED: Badge Styling Logic
+            const b = el('p-badge');
+            if(profile.hasAccess) {
+                b.innerHTML = '<i class="fas fa-crown"></i> PREMIUM';
+                b.style.background = 'rgba(16,185,129,0.2)'; b.style.color = '#10b981'; b.style.border = '1px solid #10b981';
+            } else {
+                b.innerHTML = '<i class="fas fa-user"></i> FREE';
+                b.style.background = 'rgba(148,163,184,0.2)'; b.style.color = '#94a3b8'; b.style.border = '1px solid #94a3b8';
+            }
+
+            el('ed-name').value=profile.name; el('ed-phone').value=profile.phone;
+            el('btn-save-p').onclick = () => { btnLoad('btn-save-p',1); update(ref(db,`users/${currentUser.uid}`),{name:el('ed-name').value, phone:el('ed-phone').value}).then(()=>{btnLoad('btn-save-p',0); Swal.fire('Saved','','success')}); };
+        }
+    </script>
+</body>
+</html>
